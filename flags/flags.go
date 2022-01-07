@@ -1,6 +1,9 @@
 package flags
 
 import (
+	"fmt"
+	"os"
+
 	goFlags "github.com/jessevdk/go-flags"
 )
 
@@ -16,6 +19,8 @@ type Flags struct {
 		Cmd  string   `positional-arg-name:"command"`
 		Args []string `positional-arg-name:"args"`
 	} `positional-args:"yes"`
+
+	hasCustom bool
 }
 
 var EXTRA = `
@@ -37,4 +42,19 @@ func NewFlags() *Flags {
 // Parse parses the incoming flags
 func (flags *Flags) Parse() {
 	parser := goFlags.NewParser(flags, goFlags.Default)
+	if _, err := parser.Parse(); err != nil {
+		if flagsErr, ok := err.(*goFlags.Error); ok && flagsErr.Type == goFlags.ErrHelp {
+			fmt.Println(EXTRA)
+			os.Exit(0)
+		}
+	}
+
+	// If we have a custom config, then we're done parsing parameters, we don't need to
+	// generate the default value
+	flags.hasCustom = (len(flags.Config) > 0)
+	if flags.hasCustom {
+		return
+	}
+
+	// If no config file is explicitly passed in as a param then set the flag to the default config file
 }
